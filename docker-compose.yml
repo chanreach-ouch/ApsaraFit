@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: apsarafit-db
+    environment:
+      POSTGRES_USER: apsara
+      POSTGRES_PASSWORD: apsarapassword2026
+      POSTGRES_DB: apsarafit
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apsara -d apsarafit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: apsarafit-backend
+    environment:
+      DATABASE_URL: postgresql://apsara:apsarapassword2026@db:5432/apsarafit
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      SECRET_KEY: apsarafit-production-secret-key-2026
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: apsarafit-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
